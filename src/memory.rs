@@ -1,3 +1,4 @@
+use std::fmt;
 use std::fs::File;
 use std::io::Read;
 use std::ops::{AddAssign, Index, IndexMut, Deref};
@@ -31,6 +32,12 @@ impl IndexMut<usize> for Memory {
             panic!("Write memory access out of bounds! ({:#06x} > {:#06x})", addr, LAST_ADDRESS);
         }
         &mut self.0[addr]
+    }
+}
+
+impl fmt::Debug for Memory {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("Memory { ... }")
     }
 }
 
@@ -68,6 +75,7 @@ impl Memory {
     }
 }
 
+#[derive(Debug)]
 pub struct Pointer<'a> {
     mem: &'a Memory,
     addr: usize,
