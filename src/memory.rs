@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::Read;
-use std::ops::{Index, IndexMut};
+use std::ops::{AddAssign, Index, IndexMut, Deref};
 use std::path::Path;
 
 pub const MEMORY_SIZE: usize = 1 << 15;
@@ -61,6 +61,49 @@ impl Memory {
     pub fn challenge_bin() -> Memory {
         Memory::load_file(Path::new(env!("CARGO_MANIFEST_DIR")).join("challenge").join("challenge.bin"))
     }
+
+    pub fn pointer(&self, addr: usize) -> Pointer {
+        Pointer::new(self, addr)
+    }
+}
+
+pub struct Pointer<'a> {
+    mem: &'a Memory,
+    addr: usize,
+}
+
+impl<'a> Pointer<'a> {
+    pub fn new(mem: &Memory, addr: usize) -> Pointer {
+        Pointer { mem: mem, addr: addr }
+    }
+
+    pub fn jump(&mut self, addr: usize) {
+        self.addr = addr;
+    }
+}
+
+impl<'a>AddAssign<usize> for Pointer<'a> {
+    fn add_assign(&mut self, offset: usize) {
+        self.addr += offset;
+    }
+}
+
+impl<'a> Deref for Pointer<'a> {
+    type Target = u16;
+
+    fn deref(&self) -> &u16 {
+        self.mem.index(self.addr)
+    }
+}
+
+impl<'a> Iterator for Pointer<'a> {
+    type Item = u16;
+
+    fn next(&mut self) -> Option<u16> {
+        let value = **self;
+        *self += 1;
+        Some(value)
+    }
 }
 
 #[cfg(test)]
@@ -91,5 +134,19 @@ mod tests {
         assert_eq!(mem[1], 0x0015);
         assert_eq!(mem[2], 0x0013);
         assert_eq!(mem[3], 0x0057);
+    }
+
+    #[test]
+    fn pointer_operations() {
+        let mem = Memory::new();
+        let mut ptr = mem.pointer(123);
+        assert_eq!(ptr.addr, 123);
+        ptr.jump(456);
+        assert_eq!(ptr.addr, 456);
+        ptr += 111;
+        assert_eq!(ptr.addr, 567);
+        assert_eq!(*ptr, 0);
+        assert_eq!(ptr.next(), Some(0));
+        assert_eq!(ptr.addr, 568);
     }
 }
