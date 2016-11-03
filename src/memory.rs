@@ -4,6 +4,7 @@ use std::ops::{AddAssign, Index, IndexMut, Deref};
 use std::path::Path;
 
 pub const MEMORY_SIZE: usize = 1 << 15;
+pub const LAST_ADDRESS: usize = MEMORY_SIZE - 1;
 
 pub struct Memory([u16; MEMORY_SIZE]);
 
@@ -17,8 +18,8 @@ impl Index<usize> for Memory {
     type Output = u16;
 
     fn index(&self, addr: usize) -> &u16 {
-        if addr >= MEMORY_SIZE {
-            panic!("Read memory access out of bounds! ({:#06x} >= {:#06x})", addr, MEMORY_SIZE);
+        if addr > LAST_ADDRESS {
+            panic!("Read memory access out of bounds! ({:#06x} > {:#06x})", addr, LAST_ADDRESS);
         }
         &self.0[addr]
     }
@@ -26,8 +27,8 @@ impl Index<usize> for Memory {
 
 impl IndexMut<usize> for Memory {
     fn index_mut(&mut self, addr: usize) -> &mut u16 {
-        if addr >= MEMORY_SIZE {
-            panic!("Write memory access out of bounds! ({:#06x} >= {:#06x})", addr, MEMORY_SIZE);
+        if addr > LAST_ADDRESS {
+            panic!("Write memory access out of bounds! ({:#06x} > {:#06x})", addr, LAST_ADDRESS);
         }
         &mut self.0[addr]
     }
