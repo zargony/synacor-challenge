@@ -1,2 +1,4 @@
+mod memory;
+
 fn main() {
 }
