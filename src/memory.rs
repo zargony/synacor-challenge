@@ -7,6 +7,7 @@ use std::path::Path;
 pub const MEMORY_SIZE: usize = 1 << 15;
 pub const LAST_ADDRESS: usize = MEMORY_SIZE - 1;
 
+
 pub struct Memory([u16; MEMORY_SIZE]);
 
 impl Memory {
@@ -75,6 +76,7 @@ impl Memory {
     }
 }
 
+
 #[derive(Debug)]
 pub struct Pointer<'a> {
     mem: &'a Memory,
@@ -106,14 +108,15 @@ impl<'a> Deref for Pointer<'a> {
 }
 
 impl<'a> Iterator for Pointer<'a> {
-    type Item = u16;
+    type Item = &'a u16;
 
-    fn next(&mut self) -> Option<u16> {
-        let value = **self;
-        *self += 1;
-        Some(value)
+    fn next(&mut self) -> Option<&'a u16> {
+        let addr = self.addr;
+        self.addr += 1;
+        Some(self.mem.index(addr))
     }
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -155,7 +158,7 @@ mod tests {
         ptr += 111;
         assert_eq!(ptr.addr, 567);
         assert_eq!(*ptr, 0);
-        assert_eq!(ptr.next(), Some(0));
+        assert_eq!(ptr.next(), Some(&0));
         assert_eq!(ptr.addr, 568);
     }
 }
