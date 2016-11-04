@@ -1,4 +1,5 @@
 use std::fmt;
+use std::io::{self, Read};
 use super::memory::{MEMORY_SIZE, Memory, Pointer};
 
 pub trait FromPointer: Sized {
@@ -10,6 +11,22 @@ pub trait FromPointer: Sized {
 pub enum Operand {
     Literal(u16),
     Register(u8),
+}
+
+impl Operand {
+    pub fn get(&self, vm: &VM) -> u16 {
+        match *self {
+            Operand::Literal(n) => n,
+            Operand::Register(r) => vm.reg[r as usize],
+        }
+    }
+
+    pub fn set(&self, vm: &mut VM, value: u16) {
+        match *self {
+            Operand::Literal(_) => panic!("Invalid write to literal operand"),
+            Operand::Register(r) => vm.reg[r as usize] = value,
+        }
+    }
 }
 
 impl fmt::Debug for Operand {
@@ -91,12 +108,103 @@ pub enum Instruction {
 impl Instruction {
     fn execute(&self, vm: &mut VM) {
         match *self {
-            Instruction::Halt => vm.halted = true,
-            // TODO
-            Instruction::Out(Operand::Literal(ch)) => print!("{}", ch as u8 as char),
-            // TODO
+            Instruction::Halt => {
+                vm.halted = true
+            },
+            Instruction::Set(ref a, ref b) => {
+                let val = b.get(vm);
+                a.set(vm, val)
+            },
+            Instruction::Push(ref a) => {
+                let val = a.get(vm);
+                vm.stack.push(val);
+            },
+            Instruction::Pop(ref a) => {
+                match vm.stack.pop() {
+                    Some(val) => a.set(vm, val),
+                    None => panic!("Stack underflow"),
+                }
+            },
+            Instruction::Eq(ref a, ref b, ref c) => {
+                match b.get(vm) == c.get(vm) {
+                    false => a.set(vm, 0),
+                    true => a.set(vm, 1),
+                }
+            },
+            Instruction::Gt(ref a, ref b, ref c) => {
+                match b.get(vm) > c.get(vm) {
+                    false => a.set(vm, 0),
+                    true => a.set(vm, 1),
+                }
+            },
+            Instruction::Jmp(ref a) => {
+                vm.ip = a.get(vm) as usize
+            },
+            Instruction::Jt(ref a, ref b) => {
+                if a.get(vm) != 0 {
+                    vm.ip = b.get(vm) as usize;
+                }
+            },
+            Instruction::Jf(ref a, ref b) => {
+                if a.get(vm) == 0 {
+                    vm.ip = b.get(vm) as usize;
+                }
+            },
+            Instruction::Add(ref a, ref b, ref c) => {
+                let val = (b.get(vm) + c.get(vm)) % 0x8000;
+                a.set(vm, val);
+            },
+            Instruction::Mult(ref a, ref b, ref c) => {
+                let val = ((b.get(vm) as u32 * c.get(vm) as u32) % 0x8000) as u16;
+                a.set(vm, val);
+            },
+            Instruction::Mod(ref a, ref b, ref c) => {
+                let val = b.get(vm) % c.get(vm);
+                a.set(vm, val);
+            },
+            Instruction::And(ref a, ref b, ref c) => {
+                let val = b.get(vm) & c.get(vm);
+                a.set(vm, val);
+            },
+            Instruction::Or(ref a, ref b, ref c) => {
+                let val = b.get(vm) | c.get(vm);
+                a.set(vm, val);
+            },
+            Instruction::Not(ref a, ref b) => {
+                let val = !b.get(vm) & 0x7fff;
+                a.set(vm, val);
+            },
+            Instruction::RMem(ref a, ref b) => {
+                let addr = b.get(vm) as usize;
+                let val = vm.mem[addr];
+                a.set(vm, val);
+            },
+            Instruction::WMem(ref a, ref b) => {
+                let addr = a.get(vm) as usize;
+                let val = b.get(vm);
+                vm.mem[addr] = val;
+            },
+            Instruction::Call(ref a) => {
+                vm.stack.push(vm.ip as u16);
+                vm.ip = a.get(vm) as usize;
+            },
+            Instruction::Ret => {
+                match vm.stack.pop() {
+                    Some(addr) => vm.ip = addr as usize,
+                    None => vm.halted = true,
+                }
+            },
+            Instruction::Out(ref ch) => {
+                print!("{}", ch.get(vm) as u8 as char);
+            },
+            Instruction::In(ref a) => {
+                match io::stdin().bytes().next() {
+                    Some(Ok(ch)) => a.set(vm, ch as u16),
+                    Some(Err(e)) => panic!("Error reading input: {}", e),
+                    None => panic!("Input channel closed"),
+                }
+            },
             Instruction::Noop => (),
-            _ => unimplemented!(),
         }
     }
 }
