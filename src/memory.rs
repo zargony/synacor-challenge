@@ -16,6 +16,16 @@ impl Memory {
     }
 }
 
+impl<'a> From<&'a [u16]> for Memory {
+    fn from(data: &[u16]) -> Memory {
+        let mut mem = Memory::new();
+        for (addr, &value) in data.iter().enumerate() {
+            mem[addr] = value;
+        }
+        mem
+    }
+}
+
 impl Index<usize> for Memory {
     type Output = u16;
 
@@ -131,8 +141,17 @@ mod tests {
     }
 
     #[test]
+    fn creating() {
+        let mem = Memory::from(&[0x1234_u16, 0x5678, 0x9abc][..]);
+        assert_eq!(mem[0], 0x1234);
+        assert_eq!(mem[1], 0x5678);
+        assert_eq!(mem[2], 0x9abc);
+        assert_eq!(mem[3], 0);
+    }
+
+    #[test]
     fn loading() {
-        let mem = Memory::load(&[0x12u8, 0x34, 0x56, 0x78, 0x9a, 0xbc][..]);
+        let mem = Memory::load(&[0x12_u8, 0x34, 0x56, 0x78, 0x9a, 0xbc][..]);
         assert_eq!(mem[0], 0x3412);
         assert_eq!(mem[1], 0x7856);
         assert_eq!(mem[2], 0xbc9a);
