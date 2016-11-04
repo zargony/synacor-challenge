@@ -1,3 +1,4 @@
+use std::fmt;
 use super::memory::{MEMORY_SIZE, Memory, Pointer};
 
 pub trait FromPointer: Sized {
@@ -5,10 +6,19 @@ pub trait FromPointer: Sized {
 }
 
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 pub enum Operand {
     Literal(u16),
     Register(u8),
+}
+
+impl fmt::Debug for Operand {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Operand::Literal(n) => f.write_fmt(format_args!("{:#x}", n)),
+            Operand::Register(r) => f.write_fmt(format_args!("R{:x}", r)),
+        }
+    }
 }
 
 impl From<u16> for Operand {
