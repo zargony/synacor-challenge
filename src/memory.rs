@@ -98,6 +98,10 @@ impl<'a> Pointer<'a> {
         Pointer { mem: mem, addr: addr }
     }
 
+    pub fn addr(&self) -> usize {
+        self.addr
+    }
+
     pub fn jump(&mut self, addr: usize) {
         self.addr = addr;
     }
@@ -171,13 +175,13 @@ mod tests {
     fn pointer_operations() {
         let mem = Memory::new();
         let mut ptr = mem.pointer(123);
-        assert_eq!(ptr.addr, 123);
+        assert_eq!(ptr.addr(), 123);
         ptr.jump(456);
-        assert_eq!(ptr.addr, 456);
+        assert_eq!(ptr.addr(), 456);
         ptr += 111;
-        assert_eq!(ptr.addr, 567);
+        assert_eq!(ptr.addr(), 567);
         assert_eq!(*ptr, 0);
         assert_eq!(ptr.next(), Some(&0));
-        assert_eq!(ptr.addr, 568);
+        assert_eq!(ptr.addr(), 568);
     }
 }
